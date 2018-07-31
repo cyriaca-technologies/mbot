@@ -53,9 +53,15 @@ class MBotEventListener extends ListenerAdapter {
                         case "vismetrics":
                             mBot.renderPerfMetrics(textChannel, author.getIdLong());
                             break;
+                        case "about":
+                            String aboutStr = "***MBot info***"
+                                    + "\nVersion: `" + MBot.VERSION
+                                    + "`\nSource: https://github.com/cyriaca-technologies/mbot";
+                            textChannel.sendMessage(aboutStr).queue();
+                            break;
                         case "help":
-
-                            String mess = "***MBot help***"
+                            String helpStr = "***MBot help***"
+                                    + "\n`" + pref + "about` - print info about bot"
                                     + "\n`" + pref + "help` - print this help message"
                                     + "\n`" + pref + "metrics` - show system usage metrics"
                                     + "\n`" + pref + "vismetrics` - show system usage metrics in charts"
@@ -65,7 +71,7 @@ class MBotEventListener extends ListenerAdapter {
                                     + "\n`" + pref + "stopforce` - force shutdown server"
                                     + "\n`" + pref + "shutdown` - force shutdown server and stop bot"
                                     + "\n`" + pref + "shutdownforce` - force shutdown bot";
-                            textChannel.sendMessage(mess).queue();
+                            textChannel.sendMessage(helpStr).queue();
                             break;
                     }
                 }

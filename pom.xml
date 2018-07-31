@@ -6,7 +6,7 @@
 
     <groupId>net.cyriaca.zvjake</groupId>
     <artifactId>mbot</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.0.1</version>
     <build>
         <plugins>
             <plugin>
@@ -45,7 +45,12 @@
             <artifactId>javasysmon</artifactId>
             <version>0.3.5.1</version>
         </dependency>
-
+        <!-- https://mvnrepository.com/artifact/org.apache.commons/commons-lang3 -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.7</version>
+        </dependency>
     </dependencies>
 
     <repositories>

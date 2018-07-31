@@ -17,6 +17,8 @@ import java.util.TreeSet;
 
 public class MBot {
 
+    public static final String VERSION = "1.0.1";
+
     private JDA jda;
     private SysQueryCore sysQueryCore;
     private HostCore hostCore;
@@ -59,6 +61,7 @@ public class MBot {
     }
 
     public void sendLogAsync(String s) {
+        System.out.println(s);
         ioChannel.sendMessage(s).queue();
     }
 
@@ -237,7 +240,7 @@ public class MBot {
         if (isAdmin(user)) {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             try {
-                ImageIO.write(sysQueryCore.renderPerfMetrics(640, 480), "jpg", baos);
+                ImageIO.write(sysQueryCore.renderPerfMetrics(640, 480, 20), "jpg", baos);
             } catch (IOException e) {
                 e.printStackTrace();
                 System.exit(24030004);

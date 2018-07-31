@@ -1,7 +1,7 @@
 package net.cyriaca.zvjake.mbot.host;
 
 import net.cyriaca.zvjake.mbot.core.MBot;
-import net.cyriaca.zvjake.mbot.utillity.LinuxAffinity;
+import net.cyriaca.zvjake.mbot.utillity.Affinity;
 
 import java.io.*;
 
@@ -26,7 +26,7 @@ public class HostCore {
     public static HostCore startServer(String runCommand, MBot mBot) throws IOException {
         ProcessBuilder builder = new ProcessBuilder(runCommand.split(" +")).redirectErrorStream(false);
         Process process = builder.start();
-        LinuxAffinity.setAffinity(process.pid(), mBot.getServerAffinity());
+        Affinity.setAffinity(process.pid(), mBot.getServerAffinity());
         return new HostCore(mBot, process);
     }
 

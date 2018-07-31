@@ -2,7 +2,7 @@ package net.cyriaca.zvjake.mbot.core;
 
 import net.cyriaca.zvjake.mbot.exception.BuildException;
 import net.cyriaca.zvjake.mbot.exception.MBotException;
-import net.cyriaca.zvjake.mbot.utillity.LinuxAffinity;
+import net.cyriaca.zvjake.mbot.utillity.Affinity;
 
 import javax.json.*;
 import javax.security.auth.login.LoginException;
@@ -100,7 +100,7 @@ public class MBotLauncher {
             System.err.println("[ERROR]<Launcher> Config element \"bot_affinity\" missing!");
             System.exit(24020013);
         }
-        LinuxAffinity.setAffinity(ProcessHandle.current().pid(), botAffinity);
+        Affinity.setAffinity(ProcessHandle.current().pid(), botAffinity);
         String serverAffinity = null;
         try {
             serverAffinity = configData.getString("server_affinity");

@@ -86,8 +86,10 @@ public class SysQueryCore {
         synchronized (repeater) {
             e = repeater.cur;
         }
-        String cpu = String.format("[%010." + (int) (e.cpuPerc * 10.0f) + "s]", "==========").replaceAll(" ", "-");
-        String mem = String.format("[%010." + (int) (e.memPerc * 10.0f) + "s]", "==========").replaceAll(" ", "-");
+        int cpuV = (int) (e.cpuPerc * 10.0f);
+        int memV = (int) (e.memPerc * 10.0f);
+        String cpu = cpuV == 0 ? "[----------]" : String.format("[%10." + cpuV + "s]", "==========").replaceAll(" ", "-");
+        String mem = cpuV == 0 ? "[----------]" : String.format("[%10." + memV + "s]", "==========").replaceAll(" ", "-");
         return String.format("***USAGE***\nCPU\n%s %-6.2f\nMEM\n%s %-6.2f", cpu, e.cpuPerc, mem, e.memPerc);
     }
 

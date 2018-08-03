@@ -17,7 +17,7 @@ import java.util.TreeSet;
 
 public class MBot {
 
-    public static final String VERSION = "1.0.1";
+    public static final String VERSION = "1.0.2.1";
 
     private JDA jda;
     private SysQueryCore sysQueryCore;
@@ -41,13 +41,11 @@ public class MBot {
             throw new MBotException("Server affinity is null!");
         this.jda = jda;
         guild = jda.getGuildById(guildId);
-        if (guild == null) {
+        if (guild == null)
             throw new MBotException("Given ID for guild \"" + guildId + "\" does not exist!");
-        }
         ioChannel = guild.getTextChannelById(ioChannelId);
-        if (ioChannel == null) {
+        if (ioChannel == null)
             throw new MBotException("Given ID for io channel \"" + ioChannelId + "\" does not exist!");
-        }
         this.prefix = prefix;
         this.launchCommand = launchCommand;
         this.serverAffinity = serverAffinity;
@@ -86,34 +84,33 @@ public class MBot {
     }
 
     public void reportStop(int code) {
-        MessageAction action = ioChannel.sendMessage("***[Server has stopped with process code " + code + " and is now offline]***");
-        hostCore = null;
-        switch (holdAction) {
-            case BOT_SHUTDOWN:
-                action.complete();
-                completeShutdown();
-                break;
-            case SERVER_RESTART:
-                try {
-                    hostCore = HostCore.startServer(launchCommand, this);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    System.exit(24030001);
-                }
-                holdAction = HoldAction.NONE;
-                break;
-            case SERVER_SHUTDOWN:
-            case NONE:
-                action.queue();
-                break;
+        sysQueryCore.setPid(SysQueryCore.NO_PROCESS);
+        System.gc();
+        synchronized (this) {
+            MessageAction action = ioChannel.sendMessage("***[Server has stopped with process code " + code + " and is now offline]***");
+            hostCore = null;
+            switch (holdAction) {
+                case BOT_SHUTDOWN:
+                    action.complete();
+                    completeShutdown();
+                    break;
+                case SERVER_RESTART:
+                    action.queue();
+                    serverLaunch();
+                    holdAction = HoldAction.NONE;
+                    break;
+                case SERVER_SHUTDOWN:
+                case NONE:
+                    action.queue();
+                    break;
+            }
         }
     }
 
     public void writeServerCommand(String str, long user) {
         if (holdAction == HoldAction.NONE && isAdmin(user)) {
-            if (hostCore != null) {
+            if (hostCore != null)
                 hostCore.write(str + "\n");
-            }
         }
     }
 
@@ -137,17 +134,18 @@ public class MBot {
     }
 
     public void shutdown(TextChannel channel, long user) {
-        if (isAdmin(user)) {
-            if (hostCore == null) {
-                channel.sendMessage("Shutting down.").complete();
-                completeShutdown();
-            }
-            if (holdAction == HoldAction.NONE) {
-                channel.sendMessage("Shutting down.").complete();
-                holdAction = HoldAction.BOT_SHUTDOWN;
-                hostCore.stop();
-            } else {
-                channel.sendMessage("Already performing another start/stop action!").queue();
+        synchronized (this) {
+            if (isAdmin(user)) {
+                if (hostCore == null) {
+                    channel.sendMessage("Shutting down bot.").complete();
+                    completeShutdown();
+                }
+                if (holdAction == HoldAction.NONE) {
+                    channel.sendMessage("Shutting down server and bot.").complete();
+                    holdAction = HoldAction.BOT_SHUTDOWN;
+                    hostCore.stop();
+                } else
+                    channel.sendMessage("Already performing another start/stop action!").queue();
             }
         }
     }
@@ -163,84 +161,116 @@ public class MBot {
         System.exit(0);
     }
 
+    private void serverLaunch() {
+        try {
+            System.out.println("STARTING");
+            hostCore = HostCore.startServer(launchCommand, this);
+            sysQueryCore.setPid(hostCore.getPid());
+            holdAction = HoldAction.NONE;
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.exit(24030001);
+        }
+    }
+
     public void restartServer(TextChannel channel, long user) {
-        if (isAdmin(user)) {
-            if (hostCore == null) {
-                try {
-                    hostCore = HostCore.startServer(launchCommand, this);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    System.exit(24030002);
+        synchronized (this) {
+            if (isAdmin(user)) {
+                if (hostCore == null)
+                    serverLaunch();
+                else {
+                    if (holdAction == HoldAction.NONE) {
+                        channel.sendMessage("Restarting server.").complete();
+                        holdAction = HoldAction.SERVER_RESTART;
+                        hostCore.stop();
+                    } else
+                        channel.sendMessage("Already performing another start/stop action!").queue();
                 }
-            } else {
-                if (holdAction == HoldAction.NONE) {
-                    channel.sendMessage("Restarting server.").complete();
-                    holdAction = HoldAction.SERVER_RESTART;
-                    hostCore.stop();
-                } else {
-                    channel.sendMessage("Already performing another start/stop action!").queue();
+            }
+        }
+    }
+
+    public void restartServerForce(TextChannel channel, long user) {
+        synchronized (this) {
+            if (isAdmin(user)) {
+                if (hostCore == null)
+                    serverLaunch();
+                else {
+                    if (holdAction == HoldAction.NONE || holdAction == HoldAction.SERVER_RESTART) {
+                        channel.sendMessage("Force restarting server.").complete();
+                        holdAction = HoldAction.SERVER_RESTART;
+                        hostCore.forceStop();
+                    } else
+                        channel.sendMessage("Already performing another start/stop action!").queue();
                 }
             }
         }
     }
 
     public void stopServer(TextChannel channel, long user) {
-        if (isAdmin(user)) {
-            if (hostCore == null) {
-                channel.sendMessage("Server is already offline!").queue();
-            } else {
-                if (holdAction == HoldAction.NONE) {
-                    channel.sendMessage("Shutting down server.").complete();
-                    holdAction = HoldAction.SERVER_SHUTDOWN;
-                    hostCore.stop();
-                } else {
-                    channel.sendMessage("Already performing another start/stop action!").queue();
+        synchronized (this) {
+            if (isAdmin(user)) {
+                if (hostCore == null)
+                    channel.sendMessage("Server is already offline!").queue();
+                else {
+                    if (holdAction == HoldAction.NONE) {
+                        channel.sendMessage("Shutting down server.").queue();
+                        holdAction = HoldAction.SERVER_SHUTDOWN;
+                        hostCore.stop();
+                    } else
+                        channel.sendMessage("Already performing another start/stop action!").queue();
                 }
             }
         }
     }
 
     public void stopServerNow(TextChannel channel, long user) {
-        if (isAdmin(user)) {
-            if (hostCore == null) {
-                channel.sendMessage("Server is already offline!").queue();
-            } else {
-                if (holdAction == HoldAction.NONE) {
-                    holdAction = HoldAction.SERVER_SHUTDOWN;
-                    hostCore.forceStop();
-                } else {
-                    channel.sendMessage("Already performing another start/stop action!").queue();
+        synchronized (this) {
+            if (isAdmin(user)) {
+                if (hostCore == null)
+                    channel.sendMessage("Server is already offline!").queue();
+                else {
+                    if (holdAction == HoldAction.NONE || holdAction == HoldAction.SERVER_SHUTDOWN) {
+                        channel.sendMessage("Force shutting down server.").queue();
+                        holdAction = HoldAction.SERVER_SHUTDOWN;
+                        hostCore.forceStop();
+                    } else
+                        channel.sendMessage("Already performing another start/stop action!").queue();
                 }
             }
         }
     }
 
     public void startServer(TextChannel channel, long user) {
-        if (isAdmin(user)) {
-            if (hostCore != null) {
-                channel.sendMessage("Server is already online!").queue();
-            } else {
-                try {
-                    hostCore = HostCore.startServer(launchCommand, this);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    System.exit(24030003);
-                }
+        synchronized (this) {
+            if (isAdmin(user)) {
+                if (hostCore != null)
+                    channel.sendMessage("Server is already online!").queue();
+                else
+                    serverLaunch();
             }
         }
     }
 
-    public void writePerfMetrics(TextChannel channel, long user) {
+    public void garbageCollect(TextChannel channel, long user) {
         if (isAdmin(user)) {
-            channel.sendMessage(sysQueryCore.writePerfMetrics()).queue();
+            long mem = sysQueryCore.getBotMem();
+            System.gc();
+            long mem2 = sysQueryCore.getBotMem();
+            channel.sendMessage("`GC Result`\nFreed approximately " + String.format("%12.4f", (mem - mem2) / 1048576.0).trim() + " MB\nNew usage: " + String.format("%12.4f", mem2 / 1048576.0).trim() + " MB").queue();
         }
+    }
+
+    public void writePerfMetrics(TextChannel channel, long user) {
+        if (isAdmin(user))
+            channel.sendMessage(sysQueryCore.writePerfMetrics()).queue();
     }
 
     public void renderPerfMetrics(TextChannel channel, long user) {
         if (isAdmin(user)) {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             try {
-                ImageIO.write(sysQueryCore.renderPerfMetrics(640, 480, 20), "jpg", baos);
+                ImageIO.write(sysQueryCore.renderPerfMetrics(1024, 768, 20), "jpg", baos);
             } catch (IOException e) {
                 e.printStackTrace();
                 System.exit(24030004);

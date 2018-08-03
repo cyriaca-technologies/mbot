@@ -1,6 +1,7 @@
 package net.cyriaca.zvjake.mbot.host;
 
 import net.cyriaca.zvjake.mbot.core.MBot;
+import net.cyriaca.zvjake.mbot.sysquery.SysQueryCore;
 import net.cyriaca.zvjake.mbot.utillity.Affinity;
 
 import java.io.*;
@@ -11,13 +12,14 @@ public class HostCore {
     private ReadThread readThread;
     private Thread readThreadThread;
     private BufferedWriter bufferedWriter;
+    private Thread lifeThreadThread;
 
     private HostCore(MBot mBot, Process process) {
         this.process = process;
         readThread = new ReadThread(mBot, process.getInputStream());
         readThreadThread = new Thread(readThread);
         LifeThread lifeThread = new LifeThread(mBot, process);
-        Thread lifeThreadThread = new Thread(lifeThread);
+        lifeThreadThread = new Thread(lifeThread);
         bufferedWriter = new BufferedWriter(new OutputStreamWriter(process.getOutputStream()));
         readThreadThread.start();
         lifeThreadThread.start();
@@ -50,6 +52,10 @@ public class HostCore {
         process.destroyForcibly();
         if (readThreadThread.isAlive())
             readThread.stop();
+    }
+
+    public int getPid() {
+        return lifeThreadThread.isAlive() ? (int) process.pid() : SysQueryCore.NO_PROCESS;
     }
 
     private class ReadThread implements Runnable {

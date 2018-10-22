@@ -1,6 +1,6 @@
 # mbot
 
-### A Discord bot for keeping an eye on your game server process
+### A Discord bot that launches / monitors (I/O) / kills a preconfigured command process
 
 ##### This code requires [Java](http://www.oracle.com/technetwork/java/javase/downloads/index.html) 9 features.
 
@@ -57,15 +57,21 @@ The token used by the bot to login to Discord.
 
 #### guild
 
-The unique ID of the guild for the bot to work in.
+The unique ID of the Discord guild for the bot to work in.
 
 #### io_channel
 
-The unique ID of the channel used for the target process's log output.
+The unique ID of the Discord channel used for the target process's log output and stdin (from new messages in the channel).
 
 #### prefix
 
-Command prefix, e.g. "."
+Command prefix, e.g. `"."`
+
+### launch_command
+
+The command to run on any server start invocations.
+
+e.g. on a Linux machine with a CS:GO dedicated server install,  `srcds -game csgo -console -usercon +game_type 1 +game_mode 2 +mapgroup mg_allclassic +map de_dust2` should launch the server.
 
 #### bot_affinity / server_affinity
 

@@ -81,21 +81,19 @@ public class HostCore {
 
         @Override
         public void run() {
-            while (!stop.get()) {
+            while (true) {
                 try {
-                    if (scanner.ready()) {
-                        writeTask.addString(scanner.readLine());
-                    }
+                    String str = scanner.readLine();
+                    if (str == null) {
+                        timer.cancel();
+                        writeTask.run();
+                        return;
+                    } else
+                        writeTask.addString(str);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-                if (!stop.get())
-                    try {
-                        Thread.sleep(100);
-                    } catch (InterruptedException ignored) {
-                    }
             }
-            timer.cancel();
         }
 
         private void stop() {

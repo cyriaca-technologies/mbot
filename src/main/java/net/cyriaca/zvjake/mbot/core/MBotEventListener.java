@@ -28,7 +28,7 @@ class MBotEventListener extends ListenerAdapter {
                     TextChannel textChannel = event.getTextChannel();
                     switch (tk[0].substring(pref.length())) {
                         case "shutdownforce":
-                            mBot.shutdownForce(textChannel, author.getIdLong());
+                            mBot.shutdownForce(author.getIdLong());
                             break;
                         case "shutdown":
                             mBot.shutdown(textChannel, author.getIdLong());
@@ -49,7 +49,7 @@ class MBotEventListener extends ListenerAdapter {
                             mBot.restartServerForce(textChannel, author.getIdLong());
                             break;
                         case "status":
-                            mBot.showStatus(textChannel, author.getIdLong());
+                            mBot.showStatus(textChannel);
                         case "metrics":
                             mBot.writePerfMetrics(textChannel, author.getIdLong());
                             break;

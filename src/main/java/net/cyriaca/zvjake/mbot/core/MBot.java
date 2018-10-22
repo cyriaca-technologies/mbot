@@ -17,7 +17,9 @@ import java.util.TreeSet;
 
 public class MBot {
 
-    public static final String VERSION = "1.0.2.1";
+    static final String VERSION = "1.1";
+
+    private final Object lock = new Object();
 
     private JDA jda;
     private SysQueryCore sysQueryCore;
@@ -59,82 +61,98 @@ public class MBot {
     }
 
     public void sendLogAsync(String s) {
-        System.out.println(s);
-        ioChannel.sendMessage(s).queue();
+        synchronized (lock) {
+            System.out.println(s);
+            ioChannel.sendMessage(s).queue();
+        }
     }
 
-    public Guild getGuild() {
-        return guild;
+    Guild getGuild() {
+        synchronized (lock) {
+            return guild;
+        }
     }
 
-    public TextChannel getIoChannel() {
-        return ioChannel;
+    TextChannel getIoChannel() {
+        synchronized (lock) {
+            return ioChannel;
+        }
     }
 
-    public String getPrefix() {
-        return prefix;
+    String getPrefix() {
+        synchronized (lock) {
+            return prefix;
+        }
     }
 
-    public boolean isAdmin(long userId) {
-        return adminIds.contains(userId);
+    private boolean isAdmin(long userId) {
+        synchronized (lock) {
+            return adminIds.contains(userId);
+        }
     }
 
     public String getServerAffinity() {
-        return serverAffinity;
+        synchronized (lock) {
+            return serverAffinity;
+        }
     }
 
     public void reportStop(int code) {
-        sysQueryCore.setPid(SysQueryCore.NO_PROCESS);
-        System.gc();
-        synchronized (this) {
-            MessageAction action = ioChannel.sendMessage("***[Server has stopped with process code " + code + " and is now offline]***");
-            hostCore = null;
-            switch (holdAction) {
-                case BOT_SHUTDOWN:
-                    action.complete();
-                    completeShutdown();
-                    break;
-                case SERVER_RESTART:
-                    action.queue();
-                    serverLaunch();
-                    holdAction = HoldAction.NONE;
-                    break;
-                case SERVER_SHUTDOWN:
-                case NONE:
-                    action.queue();
-                    break;
+        synchronized (lock) {
+            sysQueryCore.setPid(SysQueryCore.NO_PROCESS);
+            System.gc();
+            synchronized (lock) {
+                MessageAction action = ioChannel.sendMessage("***[Server has stopped with process code " + code + " and is now offline]***");
+                hostCore = null;
+                switch (holdAction) {
+                    case BOT_SHUTDOWN:
+                        action.complete();
+                        completeShutdown();
+                        break;
+                    case SERVER_RESTART:
+                        action.queue();
+                        serverLaunch();
+                        holdAction = HoldAction.NONE;
+                        break;
+                    case SERVER_SHUTDOWN:
+                    case NONE:
+                        action.queue();
+                        break;
+                }
             }
         }
     }
 
-    public void writeServerCommand(String str, long user) {
-        if (holdAction == HoldAction.NONE && isAdmin(user)) {
-            if (hostCore != null)
+    void writeServerCommand(String str, long user) {
+        synchronized (lock) {
+            if (holdAction == HoldAction.NONE && isAdmin(user) && hostCore != null)
                 hostCore.write(str + "\n");
         }
     }
 
-    public void showStatus(TextChannel channel, long user) {
-        String status = null;
-        switch (holdAction) {
-            case BOT_SHUTDOWN:
-                status = "shutting down (bot shutdown)";
-                break;
-            case SERVER_SHUTDOWN:
-                status = "shutting down";
-                break;
-            case SERVER_RESTART:
-                status = "rebooting";
-                break;
-            case NONE:
-                status = hostCore != null ? "online" : "offline";
-                break;
+    void showStatus(TextChannel channel) {
+        synchronized (lock) {
+            String status = null;
+            switch (holdAction) {
+                case BOT_SHUTDOWN:
+                    status = "shutting down (bot shutdown)";
+                    break;
+                case SERVER_SHUTDOWN:
+                    status = "shutting down";
+                    break;
+                case SERVER_RESTART:
+                    status = "rebooting";
+                    break;
+                case NONE:
+                    status = hostCore != null ? "online" : "offline";
+                    break;
+            }
+            channel.sendMessage("Server is " + status).queue();
         }
-        channel.sendMessage("Server is " + status).queue();
     }
 
-    public void shutdown(TextChannel channel, long user) {
-        synchronized (this) {
+    void shutdown(TextChannel channel, long user) {
+        synchronized (lock) {
             if (isAdmin(user)) {
                 if (hostCore == null) {
                     channel.sendMessage("Shutting down bot.").complete();
@@ -150,7 +168,7 @@ public class MBot {
         }
     }
 
-    public void shutdownForce(TextChannel channel, long user) {
+    void shutdownForce(long user) {
         if (isAdmin(user))
             System.exit(0);
     }
@@ -173,8 +191,8 @@ public class MBot {
         }
     }
 
-    public void restartServer(TextChannel channel, long user) {
-        synchronized (this) {
+    void restartServer(TextChannel channel, long user) {
+        synchronized (lock) {
             if (isAdmin(user)) {
                 if (hostCore == null)
                     serverLaunch();
@@ -190,8 +208,8 @@ public class MBot {
         }
     }
 
-    public void restartServerForce(TextChannel channel, long user) {
-        synchronized (this) {
+    void restartServerForce(TextChannel channel, long user) {
+        synchronized (lock) {
             if (isAdmin(user)) {
                 if (hostCore == null)
                     serverLaunch();
@@ -207,8 +225,8 @@ public class MBot {
         }
     }
 
-    public void stopServer(TextChannel channel, long user) {
-        synchronized (this) {
+    void stopServer(TextChannel channel, long user) {
+        synchronized (lock) {
             if (isAdmin(user)) {
                 if (hostCore == null)
                     channel.sendMessage("Server is already offline!").queue();
@@ -224,8 +242,8 @@ public class MBot {
         }
     }
 
-    public void stopServerNow(TextChannel channel, long user) {
-        synchronized (this) {
+    void stopServerNow(TextChannel channel, long user) {
+        synchronized (lock) {
             if (isAdmin(user)) {
                 if (hostCore == null)
                     channel.sendMessage("Server is already offline!").queue();
@@ -241,8 +259,8 @@ public class MBot {
         }
     }
 
-    public void startServer(TextChannel channel, long user) {
-        synchronized (this) {
+    void startServer(TextChannel channel, long user) {
+        synchronized (lock) {
             if (isAdmin(user)) {
                 if (hostCore != null)
                     channel.sendMessage("Server is already online!").queue();
@@ -252,31 +270,37 @@ public class MBot {
         }
     }
 
-    public void garbageCollect(TextChannel channel, long user) {
-        if (isAdmin(user)) {
-            long mem = sysQueryCore.getBotMem();
-            System.gc();
-            long mem2 = sysQueryCore.getBotMem();
-            channel.sendMessage("`GC Result`\nFreed approximately " + String.format("%12.4f", (mem - mem2) / 1048576.0).trim() + " MB\nNew usage: " + String.format("%12.4f", mem2 / 1048576.0).trim() + " MB").queue();
+    void garbageCollect(TextChannel channel, long user) {
+        synchronized (lock) {
+            if (isAdmin(user)) {
+                long mem = sysQueryCore.getBotMem();
+                System.gc();
+                long mem2 = sysQueryCore.getBotMem();
+                channel.sendMessage("`GC Result`\nFreed approximately " + String.format("%12.4f", (mem - mem2) / 1048576.0).trim() + " MB\nNew usage: " + String.format("%12.4f", mem2 / 1048576.0).trim() + " MB").queue();
+            }
         }
     }
 
-    public void writePerfMetrics(TextChannel channel, long user) {
-        if (isAdmin(user))
-            channel.sendMessage(sysQueryCore.writePerfMetrics()).queue();
+    void writePerfMetrics(TextChannel channel, long user) {
+        synchronized (lock) {
+            if (isAdmin(user))
+                channel.sendMessage(sysQueryCore.writePerfMetrics()).queue();
+        }
     }
 
-    public void renderPerfMetrics(TextChannel channel, long user) {
-        if (isAdmin(user)) {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            try {
-                ImageIO.write(sysQueryCore.renderPerfMetrics(1024, 768, 20), "jpg", baos);
-            } catch (IOException e) {
-                e.printStackTrace();
-                System.exit(24030004);
+    void renderPerfMetrics(TextChannel channel, long user) {
+        synchronized (lock) {
+            if (isAdmin(user)) {
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                try {
+                    ImageIO.write(sysQueryCore.renderPerfMetrics(1024, 768, 20), "jpg", baos);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    System.exit(24030004);
+                }
+                byte[] bytes = baos.toByteArray();
+                channel.sendFile(bytes, "stats.png").queue();
             }
-            byte[] bytes = baos.toByteArray();
-            channel.sendFile(bytes, "stats.png").queue();
         }
     }
 

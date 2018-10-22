@@ -10,7 +10,7 @@ import java.awt.image.BufferedImage;
 public class SysQueryCore {
 
     public static final int NO_PROCESS = -1;
-    public static final Color INDIGO = new Color(75, 0, 130);
+    private static final Color INDIGO = new Color(75, 0, 130);
 
     private final Repeater repeater;
     private JavaSysMon jsm;
@@ -214,7 +214,8 @@ public class SysQueryCore {
                             cur.processMem += process.processInfo().getResidentBytes();
                             return false;
                         });
-                    }
+                    } else
+                        cur.processMem = 0;
                     jsm.visitProcessTree(selfPid, (process, level) -> {
                         if (level == 0)
                             cur.botMem = process.processInfo().getResidentBytes();

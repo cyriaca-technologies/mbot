@@ -9,7 +9,7 @@ import net.dv8tion.jda.core.JDABuilder;
 import javax.security.auth.login.LoginException;
 import java.util.Set;
 
-public class MBotBuilder {
+class MBotBuilder {
 
     private JDABuilder builder;
     private long guildId;
@@ -19,7 +19,7 @@ public class MBotBuilder {
     private String serverAffinity;
     private Set<Long> adminIds;
 
-    public MBotBuilder() {
+    MBotBuilder() {
         this.builder = new JDABuilder(AccountType.BOT);
         this.guildId = -1L;
         this.ioChannelId = -1L;
@@ -28,42 +28,35 @@ public class MBotBuilder {
         this.adminIds = null;
     }
 
-    public MBotBuilder setGuildId(long guildId) {
+    void setGuildId(long guildId) {
         this.guildId = guildId;
-        return this;
     }
 
-    public MBotBuilder setIoChannelId(long ioChannelId) {
+    void setIoChannelId(long ioChannelId) {
         this.ioChannelId = ioChannelId;
-        return this;
     }
 
-    public MBotBuilder setPrefix(String prefix) {
+    void setPrefix(String prefix) {
         this.prefix = prefix;
-        return this;
     }
 
-    public MBotBuilder setLaunchCommand(String launchCommand) {
+    void setLaunchCommand(String launchCommand) {
         this.launchCommand = launchCommand;
-        return this;
     }
 
-    public MBotBuilder setServerAffinity(String serverAffinity) {
+    void setServerAffinity(String serverAffinity) {
         this.serverAffinity = serverAffinity;
-        return this;
     }
 
-    public MBotBuilder setAdminIds(Set<Long> adminIds) {
+    void setAdminIds(Set<Long> adminIds) {
         this.adminIds = adminIds;
-        return this;
     }
 
-    public MBotBuilder setToken(String token) {
+    void setToken(String token) {
         builder.setToken(token);
-        return this;
     }
 
-    public MBot build() throws BuildException, LoginException, InterruptedException, MBotException {
+    void build() throws BuildException, LoginException, InterruptedException, MBotException {
         if (guildId == -1L)
             throw new BuildException("Guild ID not specified!");
         if (ioChannelId == -1L)
@@ -74,8 +67,10 @@ public class MBotBuilder {
             throw new BuildException("Launch command is null!");
         if (serverAffinity == null)
             throw new BuildException("Server affinity is null!");
-        JDA jda = builder.buildBlocking();
-        return new MBot(jda, guildId, ioChannelId, prefix, launchCommand, serverAffinity, adminIds);
+        if (adminIds == null)
+            throw new BuildException("Admin IDs are unspecified / null!");
+        JDA jda = builder.build().awaitReady();
+        new MBot(jda, guildId, ioChannelId, prefix, launchCommand, serverAffinity, adminIds);
     }
 
 }

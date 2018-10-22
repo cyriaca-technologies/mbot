@@ -5,8 +5,14 @@ import net.cyriaca.zvjake.mbot.sysquery.SysQueryCore;
 import net.cyriaca.zvjake.mbot.utillity.Affinity;
 
 import java.io.*;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class HostCore {
+
+    private static final int DISCORD_MAX_CHARS = 2000;
+    private static final long SEND_DELAY_MS = 1500;
 
     private Process process;
     private ReadThread readThread;
@@ -60,43 +66,86 @@ public class HostCore {
 
     private class ReadThread implements Runnable {
 
-        private MBot mBot;
         private BufferedReader scanner;
-        private volatile boolean stop;
+        private WriteTask writeTask;
+        private AtomicBoolean stop;
+        private Timer timer;
 
         private ReadThread(MBot mBot, InputStream inputStream) {
-            this.mBot = mBot;
             this.scanner = new BufferedReader(new InputStreamReader(inputStream));
-            this.stop = false;
+            this.writeTask = new WriteTask(mBot);
+            this.timer = new Timer();
+            this.timer.scheduleAtFixedRate(writeTask, SEND_DELAY_MS, SEND_DELAY_MS);
+            this.stop = new AtomicBoolean(false);
         }
 
         @Override
         public void run() {
-            while (!stop) {
+            while (!stop.get()) {
                 try {
                     if (scanner.ready()) {
-                        try {
-                            mBot.sendLogAsync(scanner.readLine());
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
+                        writeTask.addString(scanner.readLine());
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-                if (!stop)
+                if (!stop.get())
                     try {
                         Thread.sleep(100);
                     } catch (InterruptedException ignored) {
                     }
             }
+            timer.cancel();
         }
 
         private void stop() {
-            stop = true;
+            stop.set(true);
         }
 
+    }
 
+    private class WriteTask extends TimerTask {
+
+        private final Object lock = new Object();
+
+        private MBot mBot;
+        private StringBuilder sb;
+
+        WriteTask(MBot mBot) {
+            this.mBot = mBot;
+            this.sb = new StringBuilder();
+
+        }
+
+        private void addString(String string) {
+            synchronized (lock) {
+                int diff = DISCORD_MAX_CHARS - string.length();
+                if (diff < 0) {
+                    System.err.printf("Single log string exceeds max char limit by %d characters and will not be sent in Discord\nSource string:\n%s", -diff, string);
+                    return;
+                }
+                if (sb.length() <= diff) {
+                    if (sb.length() != 0)
+                        sb.append('\n');
+                    sb.append(string);
+                    if (sb.length() == diff)
+                        run();
+                } else {
+                    run();
+                    sb.append(string);
+                }
+            }
+        }
+
+        @Override
+        public void run() {
+            synchronized (lock) {
+                if (sb.length() != 0) {
+                    mBot.sendLogAsync(sb.toString());
+                    sb = new StringBuilder();
+                }
+            }
+        }
     }
 
     private class LifeThread implements Runnable {
@@ -117,7 +166,7 @@ public class HostCore {
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-            readThread.stop = true;
+            readThread.stop.set(true);
             mBot.reportStop(code);
         }
     }

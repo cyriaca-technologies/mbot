@@ -67,7 +67,7 @@ The unique ID of the Discord channel used for the target process's log output an
 
 Command prefix, e.g. `"."`
 
-### launch_command
+#### launch_command
 
 The command to run on any server start invocations.
 

@@ -299,7 +299,7 @@ public class MBot {
                     System.exit(24030004);
                 }
                 byte[] bytes = baos.toByteArray();
-                channel.sendFile(bytes, "stats.png").queue();
+                channel.sendFile(bytes, "stats.jpg").queue();
             }
         }
     }

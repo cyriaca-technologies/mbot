@@ -2,7 +2,7 @@ package net.cyriaca.zvjake.mbot.host;
 
 import net.cyriaca.zvjake.mbot.core.MBot;
 import net.cyriaca.zvjake.mbot.sysquery.SysQueryCore;
-import net.cyriaca.zvjake.mbot.utillity.Affinity;
+import net.cyriaca.zvjake.mbot.utility.Affinity;
 
 import java.io.*;
 import java.util.Timer;

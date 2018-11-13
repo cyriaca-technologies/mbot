@@ -2,7 +2,7 @@ package net.cyriaca.zvjake.mbot.core;
 
 import net.cyriaca.zvjake.mbot.exception.BuildException;
 import net.cyriaca.zvjake.mbot.exception.MBotException;
-import net.cyriaca.zvjake.mbot.utillity.Affinity;
+import net.cyriaca.zvjake.mbot.utility.Affinity;
 
 import javax.json.*;
 import javax.security.auth.login.LoginException;

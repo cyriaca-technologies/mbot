@@ -1,4 +1,4 @@
-package net.cyriaca.zvjake.mbot.utillity;
+package net.cyriaca.zvjake.mbot.utility;
 
 import org.apache.commons.lang3.SystemUtils;
 
